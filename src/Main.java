@@ -6,7 +6,6 @@ public class Main {
     private static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
-        System.out.println("=== Программистский калькулятор (Console) ===");
         System.out.println("Введите HELP для списка команд\n");
 
         boolean running = true;
@@ -17,24 +16,44 @@ public class Main {
             if (line.isEmpty()) continue;
 
             try {
-                String[] parts = line.split("\\s+");
+                String[] parts;
+
+                // 🆕 Поддержка ввода без пробела: "+10", "<<3", "&FF", "-5"
+                String opCandidate = null;
+                if (line.startsWith("<<")) opCandidate = "<<";
+                else if (line.startsWith(">>")) opCandidate = ">>";
+                else if (line.length() > 1 && "+-*/%&|^".indexOf(line.charAt(0)) != -1) {
+                    opCandidate = String.valueOf(line.charAt(0));
+                }
+
+                if (opCandidate != null) {
+                    String rest = line.substring(opCandidate.length()).trim();
+                    if (!rest.isEmpty()) {
+                        parts = new String[]{opCandidate, rest};
+                    } else {
+                        // Введён только оператор без операнда
+                        parts = new String[]{opCandidate};
+                    }
+                } else {
+                    // Стандартное разделение по пробелам (BASE 16, INPUT FF, HELP и т.д.)
+                    parts = line.split("\\s+");
+                }
+
                 String cmd = parts[0].toUpperCase();
                 running = executeCommand(cmd, parts);
             } catch (Exception e) {
-                System.err.println("⚠ Ошибка: " + e.getMessage());
+                System.err.println("Ошибка: " + e.getMessage());
             }
         }
         System.out.println("Программа завершена.");
     }
 
     private static void displayState() {
-        System.out.println("\n┌─────────────────────────────┐");
-        System.out.printf("│ HEX : %-25s │%n", NumberConverter.format(currentValue, 16));
-        System.out.printf("│ DEC : %-25s │%n", NumberConverter.format(currentValue, 10));
-        System.out.printf("│ OCT : %-25s │%n", NumberConverter.format(currentValue, 8));
-        System.out.printf("│ BIN : %-25s │%n", NumberConverter.format(currentValue, 2));
-        System.out.printf("│ Основа: %-22s │%n", currentBase);
-        System.out.println("└─────────────────────────────┘");
+        System.out.printf("HEX : %-25s%n", NumberConverter.format(currentValue, 16));
+        System.out.printf("DEC : %-25s%n", NumberConverter.format(currentValue, 10));
+        System.out.printf("OCT : %-25s%n", NumberConverter.format(currentValue, 8));
+        System.out.printf("BIN : %-25s%n", NumberConverter.format(currentValue, 2));
+        System.out.printf("Основа: %-22s%n", currentBase);
     }
 
     private static boolean executeCommand(String cmd, String[] parts) {
@@ -46,7 +65,7 @@ public class Main {
             case "CLEAR":
             case "C":
                 currentValue = 0;
-                System.out.println("✅ Аккумулятор очищен.");
+                System.out.println("Очищено.");
                 return true;
 
             case "HELP":
@@ -67,11 +86,11 @@ public class Main {
 
             case "~":
                 currentValue = Calculator.not(currentValue);
-                System.out.println("✅ Применено побитовое NOT (~)");
+                System.out.println("Применено побитовое NOT (~)");
                 return true;
 
             default:
-                System.out.println("❌ Неизвестная команда. Введите HELP.");
+                System.out.println("Неизвестная команда. Введите HELP.");
                 return true;
         }
     }
@@ -83,14 +102,14 @@ public class Main {
             throw new IllegalArgumentException("Поддерживаются только основания: 2, 8, 10, 16");
         }
         currentBase = newBase;
-        System.out.println("🔄 Система счисления изменена на " + newBase);
+        System.out.println("Система счисления изменена на " + newBase);
         return true;
     }
 
     private static boolean handleInput(String[] parts) {
         if (parts.length < 2) throw new IllegalArgumentException("Использование: INPUT <число>");
         currentValue = NumberConverter.parse(parts[1], currentBase);
-        System.out.println("✅ Значение установлено.");
+        System.out.println("Значение установлено.");
         return true;
     }
 
@@ -112,7 +131,7 @@ public class Main {
             default   -> throw new IllegalStateException("Неизвестная операция");
         };
 
-        System.out.println("✅ Операция " + op + " выполнена.");
+        System.out.println("Операция " + op + " выполнена.");
         return true;
     }
 
@@ -129,13 +148,11 @@ public class Main {
               HELP                - Показать справку
               EXIT                - Выход
 
-            💡 Примеры:
+            💡 Примеры ввода (с пробелом или без):
               INPUT FF       (при BASE 16 установит 255)
-              + 10           (прибавит 10)
-              << 2           (сдвинет на 2 бита влево)
-              BASE 2
-              INPUT 1010
-              | 0011
+              +10  или  + 10 (прибавит 10)
+              <<2  или  << 2 (сдвинет на 2 бита влево)
+              &FF            (побитовое И с 0xFF)
             """);
     }
 }
